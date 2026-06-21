@@ -15,6 +15,11 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(PageOutOfRangeException.class)
+    public ResponseEntity<?> handlePageOutOfRange(PageOutOfRangeException ex) {
+        return buildResponse(HttpStatus.BAD_REQUEST, "Page out of range", ex.getMessage());
+    }
+
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<?> handleConstraintViolation(ConstraintViolationException ex) {
         return buildResponse(HttpStatus.BAD_REQUEST, "Validation failed", ex.getMessage());

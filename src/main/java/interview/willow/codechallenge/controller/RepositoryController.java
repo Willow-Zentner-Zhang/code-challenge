@@ -5,6 +5,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -15,8 +17,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/v1/repositories")
 @Validated
@@ -34,7 +34,7 @@ public class RepositoryController {
             Search GitHub repositories by language and creation date,
             calculate popularity scores, and return them sorted by score.
             """)
-    public List<RepositoryResponse> repositories(
+    public RepositoryPageResponse repositories(
 
             @Parameter(description = "Programming language", example = "java")
             @RequestParam
@@ -46,7 +46,18 @@ public class RepositoryController {
             @NotNull
             @PastOrPresent
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate createdAfter) {
-        return service.getRepositories(language, createdAfter);
+            LocalDate createdAfter,
+
+            @Parameter(description = "Page number (1-based)", example = "1")
+            @RequestParam(defaultValue = "1")
+            @Min(1)
+            int page,
+
+            @Parameter(description = "Repositories per page (maximum 100)", example = "30")
+            @RequestParam(defaultValue = "30")
+            @Min(1)
+            @Max(100)
+            int size) {
+        return service.getRepositories(language, createdAfter, page, size);
     }
 }

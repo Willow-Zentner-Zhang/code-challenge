@@ -16,9 +16,18 @@ public class GithubApiClient {
                 .defaultHeader("Accept", "application/vnd.github+json").defaultHeader("X-GitHub-Api-Version", "2026-03-10").build();
     }
 
-    public GithubSearchResponse searchRepositories(String language, LocalDate createdAfter) {
+    public GithubSearchResponse searchRepositories(String language, LocalDate createdAfter, int page, int size) {
         final var query = "language:%s created:>%s".formatted(language, createdAfter);
 
-        return restClient.get().uri(uriBuilder -> uriBuilder.path("/search/repositories").queryParam("q", query).queryParam("sort", "stars").queryParam("order", "desc").queryParam("per_page", 100).build()).retrieve().body(GithubSearchResponse.class);
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder.path("/search/repositories")
+                        .queryParam("q", query)
+                        .queryParam("sort", "stars")
+                        .queryParam("order", "desc")
+                        .queryParam("page", page)
+                        .queryParam("per_page", size)
+                        .build())
+                .retrieve()
+                .body(GithubSearchResponse.class);
     }
 }
