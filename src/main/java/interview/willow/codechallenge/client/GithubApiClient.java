@@ -9,21 +9,29 @@ import java.time.LocalDate;
 @Component
 public class GithubApiClient {
 
+    private static final String REPOSITORY_SEARCH_PATH = "/search/repositories";
+    private static final String GITHUB_ACCEPT_HEADER = "application/vnd.github+json";
+
     private final RestClient restClient;
 
-    public GithubApiClient(RestClient.Builder builder) {
-        this.restClient = builder.baseUrl("https://api.github.com")
-                .defaultHeader("Accept", "application/vnd.github+json").defaultHeader("X-GitHub-Api-Version", "2026-03-10").build();
+    private final GithubApiProperties properties;
+
+    public GithubApiClient(RestClient.Builder builder, GithubApiProperties properties) {
+        this.properties = properties;
+        this.restClient = builder.baseUrl(properties.baseUrl().toString())
+                .defaultHeader("Accept", GITHUB_ACCEPT_HEADER)
+                .defaultHeader("X-GitHub-Api-Version", properties.gitHubApiVersion())
+                .build();
     }
 
     public GithubSearchResponse searchRepositories(String language, LocalDate createdAfter, int page, int size) {
         final var query = "language:%s created:>%s".formatted(language, createdAfter);
 
         return restClient.get()
-                .uri(uriBuilder -> uriBuilder.path("/search/repositories")
+                .uri(uriBuilder -> uriBuilder.path(REPOSITORY_SEARCH_PATH)
                         .queryParam("q", query)
-                        .queryParam("sort", "stars")
-                        .queryParam("order", "desc")
+                        .queryParam("sort", properties.sort())
+                        .queryParam("order", properties.order())
                         .queryParam("page", page)
                         .queryParam("per_page", size)
                         .build())

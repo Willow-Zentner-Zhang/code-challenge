@@ -27,7 +27,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<?> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
-        var message = String.format(
+        final var message = String.format(
                 "Invalid value '%s' for parameter '%s'. Expected type: %s",
                 ex.getValue(),
                 ex.getName(),
@@ -51,7 +51,7 @@ public class GlobalExceptionHandler {
             String error,
             String message
     ) {
-        Map<String, Object> body = new HashMap<>();
+        final var body = new HashMap<String, Object>();
         body.put("timestamp", LocalDateTime.now());
         body.put("status", status.value());
         body.put("error", error);

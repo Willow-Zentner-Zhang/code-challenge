@@ -11,7 +11,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Comparator;
-import java.util.List;
 
 @Service
 public class GithubRepositoryService {
@@ -27,13 +26,13 @@ public class GithubRepositoryService {
     public RepositoryPageResponse getRepositories(final String language, final LocalDate createdAfter,
                                                    final int page, final int size) {
 
-        final int maximumGithubPage = (int) Math.ceil(1_000.0 / size);
+        final var maximumGithubPage = (int) Math.ceil(1_000.0 / size);
         if (page > maximumGithubPage) {
             throw new PageOutOfRangeException(page, maximumGithubPage);
         }
 
         final var searchResponse = githubApiClient.searchRepositories(language, createdAfter, page, size);
-        final List<RepositoryResponse> repositories = searchResponse
+        final var repositories = searchResponse
                 .items()
                 .stream()
                 .map(repo -> new RepositoryResponse(repo.name(),
@@ -49,9 +48,9 @@ public class GithubRepositoryService {
                 .toList();
 
         // GitHub Search exposes at most the first 1,000 results for any query.
-        final long accessibleElements = Math.min(searchResponse.totalCount(), 1_000);
-        final int totalPages = (int) Math.ceil((double) accessibleElements / size);
-        final int lastAvailablePage = Math.max(totalPages, 1);
+        final var accessibleElements = Math.min(searchResponse.totalCount(), 1_000);
+        final var totalPages = (int) Math.ceil((double) accessibleElements / size);
+        final var lastAvailablePage = Math.max(totalPages, 1);
         if (page > lastAvailablePage) {
             throw new PageOutOfRangeException(page, lastAvailablePage);
         }

@@ -20,16 +20,16 @@ class GithubRepositoryServiceTests {
 
     @Test
     void returnsPaginationMetadataAndForwardsPageRequest() {
-        var client = mock(GithubApiClient.class);
-        var service = new GithubRepositoryService(client);
-        var createdAfter = LocalDate.of(2025, 1, 1);
-        var lowerScore = repository("second", 10, 2);
-        var higherScore = repository("first", 100, 20);
+        final var client = mock(GithubApiClient.class);
+        final var service = new GithubRepositoryService(client);
+        final var createdAfter = LocalDate.of(2025, 1, 1);
+        final var lowerScore = repository("second", 10, 2);
+        final var higherScore = repository("first", 100, 20);
 
         when(client.searchRepositories("java", createdAfter, 2, 100))
                 .thenReturn(new GithubSearchResponse(1_500, false, List.of(lowerScore, higherScore)));
 
-        var result = service.getRepositories("java", createdAfter, 2, 100);
+        final var result = service.getRepositories("java", createdAfter, 2, 100);
 
         verify(client).searchRepositories("java", createdAfter, 2, 100);
         assertThat(result.content()).extracting("name").containsExactly("first", "second");
@@ -44,9 +44,9 @@ class GithubRepositoryServiceTests {
 
     @Test
     void rejectsPageOutsideGithubSearchLimitBeforeCallingGithub() {
-        var client = mock(GithubApiClient.class);
-        var service = new GithubRepositoryService(client);
-        var createdAfter = LocalDate.of(2025, 1, 1);
+        final var client = mock(GithubApiClient.class);
+        final var service = new GithubRepositoryService(client);
+        final var createdAfter = LocalDate.of(2025, 1, 1);
 
         assertThatThrownBy(() -> service.getRepositories("java", createdAfter, 11, 100))
                 .isInstanceOf(PageOutOfRangeException.class)
@@ -56,9 +56,9 @@ class GithubRepositoryServiceTests {
 
     @Test
     void rejectsPageAfterLastMatchingResultPage() {
-        var client = mock(GithubApiClient.class);
-        var service = new GithubRepositoryService(client);
-        var createdAfter = LocalDate.of(2025, 1, 1);
+        final var client = mock(GithubApiClient.class);
+        final var service = new GithubRepositoryService(client);
+        final var createdAfter = LocalDate.of(2025, 1, 1);
 
         when(client.searchRepositories("java", createdAfter, 3, 30))
                 .thenReturn(new GithubSearchResponse(45, false, List.of()));
@@ -68,7 +68,39 @@ class GithubRepositoryServiceTests {
                 .hasMessage("Page 3 is outside the allowed range. The last available page is 2.");
     }
 
-    private GithubRepository repository(String name, int stars, int forks) {
+    @Test
+    void exposesAnEmptyFirstPageWhenThereAreNoMatches() {
+        final var client = mock(GithubApiClient.class);
+        final var service = new GithubRepositoryService(client);
+        final var createdAfter = LocalDate.of(2025, 1, 1);
+
+        when(client.searchRepositories("java", createdAfter, 1, 30))
+                .thenReturn(new GithubSearchResponse(0, true, List.of()));
+
+        final var result = service.getRepositories("java", createdAfter, 1, 30);
+
+        assertThat(result.content()).isEmpty();
+        assertThat(result.totalPages()).isZero();
+        assertThat(result.hasNext()).isFalse();
+        assertThat(result.incompleteResults()).isTrue();
+    }
+
+    @Test
+    void propagatesMalformedGithubDataForTheGlobalHandler() {
+        final var client = mock(GithubApiClient.class);
+        final var service = new GithubRepositoryService(client);
+        final var createdAfter = LocalDate.of(2025, 1, 1);
+        final var malformed = new GithubRepository("broken", 1, 1, "not-an-instant",
+                new GithubRepository.Owner("owner"));
+
+        when(client.searchRepositories("java", createdAfter, 1, 30))
+                .thenReturn(new GithubSearchResponse(1, false, List.of(malformed)));
+
+        assertThatThrownBy(() -> service.getRepositories("java", createdAfter, 1, 30))
+                .isInstanceOf(java.time.format.DateTimeParseException.class);
+    }
+
+    private GithubRepository repository(final String name, final int stars, final int forks) {
         return new GithubRepository(
                 name,
                 stars,
