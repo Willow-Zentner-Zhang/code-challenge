@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cache.CacheManager;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -17,6 +18,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -24,13 +26,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
-class RepositoryApiIntegrationTests {
+class RepositoryApiIntegrationTest {
 
     private static final HttpServer GITHUB = startGithubStub();
     private static final AtomicReference<RecordedRequest> LAST_GITHUB_REQUEST = new AtomicReference<>();
+    private static final AtomicInteger GITHUB_REQUEST_COUNT = new AtomicInteger();
 
     @Autowired
     private WebApplicationContext context;
+
+    @Autowired
+    private CacheManager cacheManager;
 
     private MockMvc mockMvc;
 
@@ -43,6 +49,8 @@ class RepositoryApiIntegrationTests {
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
+        cacheManager.getCache("repositories").clear();
+        GITHUB_REQUEST_COUNT.set(0);
     }
 
     @AfterAll
@@ -112,10 +120,24 @@ class RepositoryApiIntegrationTests {
                 .contains("per_page=2");
     }
 
+    @Test
+    void cachesIdenticalRepositorySearches() throws Exception {
+        final var request = get("/api/v1/repositories")
+                .param("language", "java")
+                .param("createdAfter", "2025-01-01")
+                .param("page", "1")
+                .param("size", "2");
+
+        mockMvc.perform(request).andExpect(status().isOk());
+        mockMvc.perform(request).andExpect(status().isOk());
+
+        assertThat(GITHUB_REQUEST_COUNT).hasValue(1);
+    }
+
     private static HttpServer startGithubStub() {
         try {
             final var server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
-            server.createContext("/search/repositories", RepositoryApiIntegrationTests::respond);
+            server.createContext("/search/repositories", RepositoryApiIntegrationTest::respond);
             server.start();
             return server;
         } catch (final IOException ex) {
@@ -124,6 +146,7 @@ class RepositoryApiIntegrationTests {
     }
 
     private static void respond(final HttpExchange exchange) throws IOException {
+        GITHUB_REQUEST_COUNT.incrementAndGet();
         LAST_GITHUB_REQUEST.set(new RecordedRequest(
                 exchange.getRequestMethod(),
                 exchange.getRequestHeaders().getFirst("Accept"),

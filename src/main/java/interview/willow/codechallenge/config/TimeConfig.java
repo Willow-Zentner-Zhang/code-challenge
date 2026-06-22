@@ -2,14 +2,14 @@ package interview.willow.codechallenge.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.client.RestClient;
+
+import java.time.Clock;
 
 @Configuration
-public class HttpClientConfig {
+public class TimeConfig {
 
     @Bean
-    RestClient.Builder restClientBuilder() {
-        return RestClient.builder();
+    Clock clock() {
+        return Clock.systemUTC();
     }
-
 }

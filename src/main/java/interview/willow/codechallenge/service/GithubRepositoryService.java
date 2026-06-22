@@ -7,7 +7,6 @@ import interview.willow.codechallenge.exception.PageOutOfRangeException;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Comparator;
@@ -15,18 +14,23 @@ import java.util.Comparator;
 @Service
 public class GithubRepositoryService {
 
+    /** GitHub Search only makes the first 1,000 results of a query accessible. */
+    private static final int MAXIMUM_ACCESSIBLE_RESULTS = 1_000;
+
     private final GithubApiClient githubApiClient;
+    private final PopularityScoreCalculator scoreCalculator;
 
-    public GithubRepositoryService(GithubApiClient githubApiClient) {
-
+    public GithubRepositoryService(final GithubApiClient githubApiClient,
+                                   final PopularityScoreCalculator scoreCalculator) {
         this.githubApiClient = githubApiClient;
+        this.scoreCalculator = scoreCalculator;
     }
 
-    @Cacheable("repositories")
+    @Cacheable(cacheNames = "repositories", sync = true)
     public RepositoryPageResponse getRepositories(final String language, final LocalDate createdAfter,
                                                    final int page, final int size) {
 
-        final var maximumGithubPage = (int) Math.ceil(1_000.0 / size);
+        final var maximumGithubPage = (int) Math.ceil((double) MAXIMUM_ACCESSIBLE_RESULTS / size);
         if (page > maximumGithubPage) {
             throw new PageOutOfRangeException(page, maximumGithubPage);
         }
@@ -40,15 +44,14 @@ public class GithubRepositoryService {
                         repo.stars(),
                         repo.forks(),
                         repo.updatedAt(),
-                        calculateScore(repo.stars(),
+                        scoreCalculator.calculate(repo.stars(),
                                 repo.forks(),
                                 Instant.parse(repo.updatedAt()))))
                 .sorted(Comparator.comparing(RepositoryResponse::popularityScore)
                         .reversed())
                 .toList();
 
-        // GitHub Search exposes at most the first 1,000 results for any query.
-        final var accessibleElements = Math.min(searchResponse.totalCount(), 1_000);
+        final var accessibleElements = Math.min(searchResponse.totalCount(), MAXIMUM_ACCESSIBLE_RESULTS);
         final var totalPages = (int) Math.ceil((double) accessibleElements / size);
         final var lastAvailablePage = Math.max(totalPages, 1);
         if (page > lastAvailablePage) {
@@ -67,8 +70,4 @@ public class GithubRepositoryService {
         );
     }
 
-    private double calculateScore(int stars, int forks, Instant updatedAt) {
-
-        return stars + forks - Duration.between(updatedAt, Instant.now()).toDays();
-    }
 }

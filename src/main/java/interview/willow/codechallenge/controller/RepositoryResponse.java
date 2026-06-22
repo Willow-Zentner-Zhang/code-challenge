@@ -20,7 +20,7 @@ public record RepositoryResponse(
         @Schema(description = "Last update timestamp", example = "2026-06-10T14:15:22Z")
         String lastUpdated,
 
-        @Schema(description = "Calculated popularity score", example = "119.83")
+        @Schema(description = "Time-decayed engagement score (stars + weighted forks)", example = "336.42")
         Double popularityScore
 
 ) {

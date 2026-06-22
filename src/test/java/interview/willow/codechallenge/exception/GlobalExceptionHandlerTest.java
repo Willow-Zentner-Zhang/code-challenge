@@ -8,10 +8,11 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.InstanceOfAssertFactories.MAP;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class GlobalExceptionHandlerTests {
+class GlobalExceptionHandlerTest {
 
     private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
 
@@ -79,11 +80,11 @@ class GlobalExceptionHandlerTests {
     private void assertError(final org.springframework.http.ResponseEntity<?> response,
                              final HttpStatus status, final String error, final String message) {
         assertThat(response.getStatusCode()).isEqualTo(status);
-        assertThat(response.getBody()).isInstanceOf(java.util.Map.class);
-        final var body = (java.util.Map<?, ?>) response.getBody();
-        assertThat(body.get("status")).isEqualTo(status.value());
-        assertThat(body.get("error")).isEqualTo(error);
-        assertThat(body.get("message")).isEqualTo(message);
-        assertThat(body.containsKey("timestamp")).isTrue();
+        assertThat(response.getBody())
+                .asInstanceOf(MAP)
+                .containsEntry("status", status.value())
+                .containsEntry("error", error)
+                .containsEntry("message", message)
+                .containsKey("timestamp");
     }
 }

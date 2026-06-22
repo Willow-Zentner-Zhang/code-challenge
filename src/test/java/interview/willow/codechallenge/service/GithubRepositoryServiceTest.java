@@ -4,9 +4,13 @@ import interview.willow.codechallenge.client.GithubApiClient;
 import interview.willow.codechallenge.client.dto.GithubRepository;
 import interview.willow.codechallenge.client.dto.GithubSearchResponse;
 import interview.willow.codechallenge.exception.PageOutOfRangeException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -16,12 +20,20 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class GithubRepositoryServiceTests {
+class GithubRepositoryServiceTest {
+
+    private GithubApiClient client;
+    private GithubRepositoryService service;
+
+    @BeforeEach
+    void setUp() {
+        client = mock(GithubApiClient.class);
+        final var clock = Clock.fixed(Instant.parse("2026-06-22T00:00:00Z"), ZoneOffset.UTC);
+        service = new GithubRepositoryService(client, new PopularityScoreCalculator(clock));
+    }
 
     @Test
     void returnsPaginationMetadataAndForwardsPageRequest() {
-        final var client = mock(GithubApiClient.class);
-        final var service = new GithubRepositoryService(client);
         final var createdAfter = LocalDate.of(2025, 1, 1);
         final var lowerScore = repository("second", 10, 2);
         final var higherScore = repository("first", 100, 20);
@@ -44,8 +56,6 @@ class GithubRepositoryServiceTests {
 
     @Test
     void rejectsPageOutsideGithubSearchLimitBeforeCallingGithub() {
-        final var client = mock(GithubApiClient.class);
-        final var service = new GithubRepositoryService(client);
         final var createdAfter = LocalDate.of(2025, 1, 1);
 
         assertThatThrownBy(() -> service.getRepositories("java", createdAfter, 11, 100))
@@ -56,8 +66,6 @@ class GithubRepositoryServiceTests {
 
     @Test
     void rejectsPageAfterLastMatchingResultPage() {
-        final var client = mock(GithubApiClient.class);
-        final var service = new GithubRepositoryService(client);
         final var createdAfter = LocalDate.of(2025, 1, 1);
 
         when(client.searchRepositories("java", createdAfter, 3, 30))
@@ -70,8 +78,6 @@ class GithubRepositoryServiceTests {
 
     @Test
     void exposesAnEmptyFirstPageWhenThereAreNoMatches() {
-        final var client = mock(GithubApiClient.class);
-        final var service = new GithubRepositoryService(client);
         final var createdAfter = LocalDate.of(2025, 1, 1);
 
         when(client.searchRepositories("java", createdAfter, 1, 30))
@@ -87,8 +93,6 @@ class GithubRepositoryServiceTests {
 
     @Test
     void propagatesMalformedGithubDataForTheGlobalHandler() {
-        final var client = mock(GithubApiClient.class);
-        final var service = new GithubRepositoryService(client);
         final var createdAfter = LocalDate.of(2025, 1, 1);
         final var malformed = new GithubRepository("broken", 1, 1, "not-an-instant",
                 new GithubRepository.Owner("owner"));
