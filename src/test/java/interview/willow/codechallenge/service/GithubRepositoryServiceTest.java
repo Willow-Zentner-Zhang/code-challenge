@@ -7,10 +7,11 @@ import interview.willow.codechallenge.exception.PageOutOfRangeException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDate;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -101,7 +102,7 @@ class GithubRepositoryServiceTest {
                 .thenReturn(new GithubSearchResponse(1, false, List.of(malformed)));
 
         assertThatThrownBy(() -> service.getRepositories("java", createdAfter, 1, 30))
-                .isInstanceOf(java.time.format.DateTimeParseException.class);
+                .isInstanceOf(DateTimeParseException.class);
     }
 
     private GithubRepository repository(final String name, final int stars, final int forks) {

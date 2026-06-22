@@ -4,8 +4,11 @@ import jakarta.validation.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.InstanceOfAssertFactories.MAP;
@@ -39,7 +42,7 @@ class GlobalExceptionHandlerTest {
     void handlesTypeMismatchWithKnownRequiredType() {
         final var parameter = mock(MethodParameter.class);
         final var exception = new MethodArgumentTypeMismatchException(
-                "tomorrow", java.time.LocalDate.class, "createdAfter", parameter, null);
+                "tomorrow", LocalDate.class, "createdAfter", parameter, null);
 
         final var response = handler.handleTypeMismatch(exception);
 
@@ -77,7 +80,7 @@ class GlobalExceptionHandlerTest {
         assertError(response, HttpStatus.INTERNAL_SERVER_ERROR, "Internal error", "GitHub is unavailable");
     }
 
-    private void assertError(final org.springframework.http.ResponseEntity<?> response,
+    private void assertError(final ResponseEntity<?> response,
                              final HttpStatus status, final String error, final String message) {
         assertThat(response.getStatusCode()).isEqualTo(status);
         assertThat(response.getBody())

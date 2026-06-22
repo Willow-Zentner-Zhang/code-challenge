@@ -1,5 +1,6 @@
 package interview.willow.codechallenge.service;
 
+import org.assertj.core.data.Offset;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
@@ -48,7 +49,7 @@ class PopularityScoreCalculatorTest {
                 .hasMessage("Stars and forks cannot be negative");
     }
 
-    private static org.assertj.core.data.Offset<Double> within(final double value) {
-        return org.assertj.core.data.Offset.offset(value);
+    private static Offset<Double> within(final double value) {
+        return Offset.offset(value);
     }
 }
